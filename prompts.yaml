@@ -1,0 +1,159 @@
+shorten:
+  system: You are a helpful assistant that edits emails.
+  user: |
+    Shorten the following email while keeping its original meaning, intent, and professional tone.
+    Remove redundancy and unnecessary wording, but do not add new information or change facts.
+
+    Return ONLY the shortened email text.
+
+    Email:
+    {selected_text}
+lengthen:
+  system: You are a helpful assistant that edits emails.
+  user: |
+    Lengthen the following email by adding clarity, detail, and smooth transitions while preserving its original meaning, intent, and professional tone.
+
+    Rules:
+    - Do NOT change the core message or request
+    - Do NOT add new facts, names, or commitments
+    - Keep the language professional and natural
+    - Improve flow and completeness, not verbosity
+
+    Return ONLY the revised email text.
+
+    Email:
+    {selected_text}
+tone:
+  system: You are a helpful assistant that edits emails.
+  user: |
+    Rewrite the following email using a {tone} tone while preserving the original meaning, intent, and key details.
+
+    Rules:
+    - Do NOT add or remove information
+    - Do NOT change names, dates, or facts
+    - Keep the email clear and natural
+    - Ensure the tone matches "{tone}" consistently throughout
+
+    Return ONLY the revised email text.
+
+    Email:
+    {selected_text}
+
+judge:
+  system: |
+    You are an expert judge assessing the quality of a generated email.
+    Your task is to evaluate the generated email based on faithfulness and completeness
+    relative to the original email.
+
+  user: |
+    ORIGINAL EMAIL:
+    {selected_text}
+
+    ------------------------------
+
+    GENERATED EMAIL:
+    {generated_text}
+
+    ------------------------------
+
+    Evaluate the GENERATED EMAIL using a SINGLE combined score that reflects BOTH:
+    1. Faithfulness — how accurately the generated email preserves the intent, meaning,
+       and factual content of the original email.
+    2. Completeness — whether the generated email includes all key requests, questions,
+       constraints, and important details from the original email.
+
+    ------------------------------
+    SCORING SCALE (1–5)
+    ------------------------------
+    5 — Fully faithful and complete. The generated email preserves the original intent
+    exactly and includes all key details with no misleading additions or omissions.
+
+    4 — Mostly faithful and complete. Minor wording changes or slight omissions/additions
+    are present but do not meaningfully alter the original intent or requests.
+
+    3 — Partially faithful or complete. The core intent is preserved, but there are
+    noticeable omissions, vague rewrites, or minor added assumptions that reduce clarity
+    or accuracy.
+
+    2 — Largely unfaithful or incomplete. Significant information is missing or altered,
+    or new assumptions/context are introduced that distort the original intent.
+
+    1 — Unfaithful and incomplete. The generated email misrepresents the original intent,
+    omits major requests, or introduces misleading or hallucinated information.
+
+    ------------------------------
+    IMPORTANT RULES
+    ------------------------------
+    - Do NOT reward stylistic or tonal improvements if they change meaning.
+    - Penalize added context, assumptions, timelines, or details not present in the
+      original email.
+    - Brevity is acceptable only if all essential content is preserved.
+    - Judge ONLY faithfulness and completeness.
+
+    ------------------------------
+    OUTPUT FORMAT (STRICT)
+    ------------------------------
+    Return your evaluation in valid JSON ONLY:
+
+    {{
+      "rating": <integer from 1 to 5>,
+      "explanation": "<concise justification based on faithfulness and completeness>"
+    }}
+
+generateLong:
+  system: |
+    You are a helpful assistant that generates synthetic emails.
+
+  user: |
+    Write 20 synthetic VERY LONG emails as JSONL (one JSON object per line).
+
+    Output format (STRICT):
+    - Each line must be a single valid JSON object: {{"id": integer, "sender": "<sender email address>", "subject": "<subject line>", "content": "<email body>"}}
+    - No markdown, no arrays, no trailing commas
+
+    Length:
+    - Each email body must be VERY LONG (800–1400 words)
+
+    Formatting (REQUIRED — make it messy):
+    - Inconsistent spacing and indentation
+    - Random blank lines
+    - Mixed bullet styles (-, *, •)
+    - Numbered lists that skip numbers
+    - ALL CAPS emphasis in places
+    - Awkward line breaks mid-sentence
+
+    Content requirements:
+    - Vary sender addresses (corporate, nonprofit, academic, personal)
+    - Vary tone (formal, friendly, frustrated-but-professional, upbeat)
+    - Each email must have a clear intent (request, update, escalation, review, planning)
+
+    Output exactly 20 JSONL lines and nothing else.
+
+generateShort:
+  system: |
+    You are a helpful assistant that generates synthetic emails.
+
+  user: |
+    Write 20 synthetic VERY SHORT emails as JSONL (one JSON object per line).
+
+    Output format (STRICT):
+    - Each line must be a single valid JSON object: {{"id": integer, "sender": "<sender email address>", "subject": "<subject line>", "content": "<email body>"}}
+    - No markdown, no arrays, no trailing commas
+
+    Length:
+    - Each email body must be VERY SHORT (5-18 words)
+
+    Formatting (REQUIRED — make it messy):
+    - Inconsistent spacing and indentation
+    - Random blank lines
+    - Mixed bullet styles (-, *, •)
+    - Numbered lists that skip numbers
+    - ALL CAPS emphasis in places
+    - Awkward line breaks mid-sentence
+
+    Content requirements:
+    - Vary sender addresses (corporate, nonprofit, academic, personal)
+    - Vary tone (formal, friendly, frustrated-but-professional, upbeat)
+    - Each email must have a clear intent (request, update, escalation, review, planning)
+
+    Output exactly 20 JSONL lines and nothing else.
