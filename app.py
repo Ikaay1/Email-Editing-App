@@ -8,14 +8,18 @@ from ui.animations import fade_container
 from ui.components import judge_card
 import hashlib
 import pandas as pd
+from scripts.utils import pick_action_tone_keys
+from scripts.utils import MODEL_SUMMARY
+from scripts.utils  import summarize_winners
+import altair as alt
 
-# ---------------- CONFIG ----------------
+# CONFIG
 st.set_page_config(page_title="AI Email Editor", page_icon="📧", layout="wide")
 st.markdown(load_theme(), unsafe_allow_html=True)
 
 JUDGE_MODELS = ["gpt-4o-mini", "gpt-4.1"]
 
-# ---------------- LOAD DATA ----------------
+# LOAD DATA
 emails = []
 with open("./datasets/tone.jsonl", "r") as f:
     for line in f:
@@ -32,20 +36,20 @@ df = df[[c for c in preferred_cols if c in df.columns]]
 
 email_ids = [e["id"] for e in emails]
 
-# ---------------- SIDEBAR ----------------
+# SIDEBAR
 selected_id, action, tone, gen_model = sidebar_controls(email_ids)
 selected_email = emails[selected_id - 1]
 
-# ---------------- HEADER ----------------
+# HEADER
 st.title("📧 AI Email Editing Tool")
 st.caption("Select an email record by ID and use AI to refine it.")
 
-# ---------------- TABS ----------------
-tab_original, tab_generated, tab_eval, tab_all = st.tabs(
-    ["✉️ Original", "✍️ Generated", "📊 Evaluation", "📚 All Emails"]
+# TABS
+tab_original, tab_generated, tab_eval, tab_compare, tab_all = st.tabs(
+    ["✉️ Original", "✍️ Generated", "📊 Evaluation", "📈 Model Comparison", "📚 All Emails"]
 )
 
-# ---------------- ORIGINAL TAB ----------------
+# ORIGINAL TAB
 with tab_original:
     fade_container(lambda: st.markdown("### ✉️ Original Email"))
 
@@ -130,7 +134,7 @@ with tab_original:
 
         st.toast("Generated! Check the ✍️ Generated tab.", icon="✅")
 
-# ---------------- GENERATED TAB ----------------
+# GENERATED TAB
 with tab_generated:
     if state_key not in st.session_state:
         st.info("Generate an email first from the ✉️ Original tab.")
@@ -156,7 +160,7 @@ with tab_generated:
                 del st.session_state[state_key]
                 st.rerun()
 
-# ---------------- EVALUATION TAB ----------------
+# EVALUATION TAB
 with tab_eval:
     if state_key not in st.session_state:
         st.info("Generate an email first from the ✉️ Original tab.")
@@ -181,7 +185,101 @@ with tab_eval:
         st.markdown("### 📈 Rating Comparison")
         st.bar_chart({"Model": JUDGE_MODELS, "Rating": ratings}, x="Model", y="Rating")
 
-# ---------------- ALL EMAILS TAB ----------------
+# MODEL COMPARISON TAB
+with tab_compare:
+    fade_container(lambda: st.markdown("### 📈 Model Comparison (Aggregate)"))
+
+    akey, tkey = pick_action_tone_keys(action, tone)
+    key = (akey, tkey)
+
+    metrics = MODEL_SUMMARY.get(key)
+
+    if not metrics:
+        st.info(
+            f"No aggregate comparison data found for action='{akey}'"
+            + (f", tone='{tkey}'" if akey == "tone" else "")
+            + ". Add it to MODEL_SUMMARY to enable this view."
+        )
+    else:
+        # Build dataframe for charts/table
+        rows = []
+        for model, vals in metrics.items():
+            rows.append({
+                "Model": model,
+                "Rating": vals.get("rating", 0),
+                "Faithfulness": vals.get("faithfulness_rating", 0),
+                "Completeness": vals.get("completeness_rating", 0),
+            })
+        comp_df = pd.DataFrame(rows)
+
+        long_df = comp_df.melt(id_vars=["Model"], var_name="Metric", value_name="Score")
+
+        # Chart: Grouped bars + value labels
+        st.markdown("#### 📊 Scores by Metric")
+
+        bars = (
+            alt.Chart(long_df)
+            .mark_bar()
+            .encode(
+                x=alt.X("Metric:N", title=None),
+                y=alt.Y("Score:Q", scale=alt.Scale(domain=[0, 5]), title="Score (0–5)"),
+                xOffset="Model:N",
+                color=alt.Color("Model:N", legend=alt.Legend(title="Model")),
+                tooltip=["Model", "Metric", alt.Tooltip("Score:Q", format=".4f")],
+            )
+        )
+
+        labels = (
+            alt.Chart(long_df)
+            .mark_text(dy=-6, fontSize=12)
+            .encode(
+                x=alt.X("Metric:N"),
+                y=alt.Y("Score:Q", scale=alt.Scale(domain=[0, 5])),
+                xOffset="Model:N",
+                text=alt.Text("Score:Q", format=".4f"),
+                tooltip=["Model", "Metric", alt.Tooltip("Score:Q", format=".4f")],
+            )
+        )
+
+        st.altair_chart(bars + labels, use_container_width=True)
+
+        # table
+        st.markdown("#### 🧾 Numbers")
+        st.dataframe(comp_df, use_container_width=True, hide_index=True)
+
+        # Winner summary
+        wins, overall = summarize_winners(metrics)
+
+        def pretty_model(m):
+            return "GPT-4.1" if m == "gpt-4.1" else "GPT-4o-mini" if m == "gpt-4o-mini" else m
+
+        st.markdown("#### 🏁 Who’s better for this action?")
+        if overall == "tie":
+            overall_line = "Overall: **Tie** on rating."
+        else:
+            overall_line = f"Overall: **{pretty_model(overall)}** has the higher rating."
+
+        st.markdown(
+            f"""
+- **Faithfulness winner:** **{pretty_model(wins["faithfulness_rating"])}**
+- **Completeness winner:** **{pretty_model(wins["completeness_rating"])}**
+- **Overall winner:** **{pretty_model(overall)}**
+"""
+        )
+
+        faith_w = wins["faithfulness_rating"]
+        comp_w = wins["completeness_rating"]
+        if faith_w == comp_w and faith_w != "tie":
+            st.caption(f"For this action, **{pretty_model(faith_w)}** leads faithfulness, completeness, and overall rating, so it’s the safer default.")
+        elif overall != "tie":
+            st.caption(
+                f"For this action, **{pretty_model(overall)}** edges overall rating, so it’s the safer option. "
+            )
+        else:
+            st.caption("For this action, they’re extremely close—pick based on style or speed.")
+
+
+# ALL EMAILS TAB
 with tab_all:
     st.markdown("### 📚 All Emails in Dataset")
 

@@ -42,8 +42,15 @@ tone:
 judge:
   system: |
     You are an expert judge assessing the quality of a generated email.
-    Your task is to evaluate the generated email based on faithfulness and completeness
-    relative to the original email.
+    Your task is to evaluate the generated email relative to the original email
+    using THREE dimensions:
+
+    1. Faithfulness — how accurately the generated email preserves the original
+       intent, meaning, and factual content, without introducing new assumptions.
+    2. Completeness — whether the generated email includes all key requests,
+       questions, constraints, and important details from the original.
+    3. Overall Quality — a holistic score reflecting both faithfulness and
+       completeness together, NOT style or tone.
 
   user: |
     ORIGINAL EMAIL:
@@ -56,48 +63,60 @@ judge:
 
     ------------------------------
 
-    Evaluate the GENERATED EMAIL using a SINGLE combined score that reflects BOTH:
-    1. Faithfulness — how accurately the generated email preserves the intent, meaning,
-       and factual content of the original email.
-    2. Completeness — whether the generated email includes all key requests, questions,
-       constraints, and important details from the original email.
+    Evaluate the GENERATED EMAIL using the following scales:
 
     ------------------------------
-    SCORING SCALE (1–5)
+    FAITHFULNESS SCALE (1–5)
     ------------------------------
-    5 — Fully faithful and complete. The generated email preserves the original intent
-    exactly and includes all key details with no misleading additions or omissions.
+    5 — Fully faithful. Preserves original intent, meaning, and facts exactly.
+    4 — Mostly faithful. Minor wording differences without material distortion.
+    3 — Partially faithful. Core intent present, but some meaning is altered.
+    2 — Largely unfaithful. Significant distortions or new assumptions introduced.
+    1 — Unfaithful. Misrepresents or contradicts the original intent or facts.
 
-    4 — Mostly faithful and complete. Minor wording changes or slight omissions/additions
-    are present but do not meaningfully alter the original intent or requests.
+    ------------------------------
+    COMPLETENESS SCALE (1–5)
+    ------------------------------
+    5 — Fully complete. All key requests, questions, constraints, and details included.
+    4 — Mostly complete. Minor details missing, no essential loss.
+    3 — Partially complete. Some important elements missing or vague.
+    2 — Largely incomplete. Many key elements missing or reduced.
+    1 — Incomplete. Most essential information missing.
 
-    3 — Partially faithful or complete. The core intent is preserved, but there are
-    noticeable omissions, vague rewrites, or minor added assumptions that reduce clarity
-    or accuracy.
+    ------------------------------
+    OVERALL RATING (1–5)
+    ------------------------------
+    The overall rating MUST reflect a balanced judgment of BOTH faithfulness
+    and completeness:
 
-    2 — Largely unfaithful or incomplete. Significant information is missing or altered,
-    or new assumptions/context are introduced that distort the original intent.
+    - 5 — Fully faithful AND fully complete.
+    - 4 — Mostly faithful AND mostly complete.
+    - 3 — Mixed performance: partial faithfulness and/or completeness.
+    - 2 — Major issues in faithfulness or completeness.
+    - 1 — Fails on both faithfulness and completeness.
 
-    1 — Unfaithful and incomplete. The generated email misrepresents the original intent,
-    omits major requests, or introduces misleading or hallucinated information.
+    The overall rating MUST NOT exceed either the faithfulness or completeness score.
 
     ------------------------------
     IMPORTANT RULES
     ------------------------------
     - Do NOT reward stylistic or tonal improvements if they change meaning.
-    - Penalize added context, assumptions, timelines, or details not present in the
-      original email.
-    - Brevity is acceptable only if all essential content is preserved.
-    - Judge ONLY faithfulness and completeness.
+    - Penalize added context, assumptions, timelines, or details not present
+      in the original email.
+    - Brevity is acceptable ONLY if all essential content is preserved.
+    - Judge ONLY faithfulness and completeness (style is irrelevant).
 
     ------------------------------
     OUTPUT FORMAT (STRICT)
     ------------------------------
+    Note: "rating" is the overall rating
     Return your evaluation in valid JSON ONLY:
 
     {{
+      "faithfulness_rating": <integer from 1 to 5>,
+      "completeness_rating": <integer from 1 to 5>,
       "rating": <integer from 1 to 5>,
-      "explanation": "<concise justification based on faithfulness and completeness>"
+      "explanation": "<concise justification referencing all ratings>"
     }}
 
 generateLong:
